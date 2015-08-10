@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r71/three.min.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/stats.js/r14/Stats.min.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5/dat.gui.min.js'></script>
+<script src="https://dl.dropboxusercontent.com/u/34383506/OrbitControls.js"></script>
+<script src="https://dl.dropboxusercontent.com/u/34383506/STLLoader.js"></script>
+<script src="main.js"></script>
+<link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css' rel='stylesheet' type='text/css' />
+<link href='style.css' rel='stylesheet' type='text/css' />
+<script src='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js'></script>
+<meta name='description' content='Three.js Training'>
+  <meta charset='utf-8'>
+  <title>Three.js training</title>
+</head>
+<body>
+	<h1>3D Inverse Kinematics calculator with Three.js</h1>
+	
+	<h2>3D motor simulation for one 3 DOF Hexapod leg<br />
+		  with simple trigonometry
+	</h2>
+	
+	<p>
+		Coxa = Hip, Femur = Quad, Tibia = Knee.<br />
+	  Red wireframe spheres present joints (servo motors).<br />
+		Blue meshes are 3D printed leg parts<br />
+		and yellow meshes are hobby servo motors.<br />
+		Red line is the distance vector and red sphere is the destination point.
+	</p>
+	
+  <div id='container'></div>
+</body>
+</html>
