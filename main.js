@@ -312,7 +312,7 @@ function render() {
 			line = scene.getObjectByName( 'line' ),
 			pointSphere = scene.getObjectByName( 'pointSphere' );
 	
-	// Print angles to DOM
+	// Print angles and distance to DOM
 	document.getElementById( 'distance' ).innerHTML = 'XYZ: ' + IK.dist + ' mm';
 	document.getElementById( 'coxa' ).innerHTML = 'Coxa: ' + IK.angleCoxa + ' degrees';
 	document.getElementById( 'femur' ).innerHTML = 'Femur: ' + IK.angleFemur + ' degrees';
