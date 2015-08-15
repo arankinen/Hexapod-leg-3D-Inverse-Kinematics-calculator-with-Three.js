@@ -6,10 +6,10 @@ var renderer,
 		control,
 		orbitcontrols,
 		
-		// Lengths
-		coxaLength = 40,
-		femurLength = 55,
-		tibiaLength = 50;
+		// Leg lengths
+		coxaLength = 32.5,
+		femurLength = 54,
+		tibiaLength = 53;
 
 // Main initial function
 function init() {
@@ -147,9 +147,9 @@ function init() {
 	// Initial dat.GUI control values
 	control = new function() {
     this.xCoord = 200;
-    this.yCoord = 50;
+    this.yCoord = 45;
     this.zCoord = 0;
-    this.leftHand = true;
+    this.upHand = true;
   };
   addControls( control );
 	
@@ -157,7 +157,7 @@ function init() {
   var lineMaterial = new THREE.LineBasicMaterial( { color: 0xff022c, linewidth: 5 } ),
       lineGeometry = new THREE.Geometry();
 	lineGeometry.vertices.push(
-	  new THREE.Vector3( 0, 50, 0 ),
+	  new THREE.Vector3( coxaLength, 45, 0 ),
 	  new THREE.Vector3( control.xCoord, control.yCoord, control.zCoord )
   );
 	var line = new THREE.Line( lineGeometry, lineMaterial );
@@ -203,10 +203,10 @@ function onWindowResize() {
 // Coordinate and zoom controls (right top corner)
 function addControls( controlObject ) {
   var gui = new dat.GUI();
-  gui.add( controlObject, 'xCoord', -200, 200 );
+  gui.add( controlObject, 'xCoord', 0, 200 );
   gui.add( controlObject, 'yCoord', -200, 200 );
   gui.add( controlObject, 'zCoord', -200, 200 );
-  gui.add( controlObject, 'leftHand' );
+  gui.add( controlObject, 'upHand' );
 }
 
 // FPS and delay stats (left top corner)
@@ -219,90 +219,92 @@ function createStats() {
   return stats;
 }
 
+// Angle range max and min values (-90 to 90) degrees
+function isInRange( angle ) {
+	if ( angle > Math.PI / 2 ) {
+		angle = Math.PI / 2;
+	}
+	else if ( angle < -Math.PI / 2 ) {
+		angle = -Math.PI / 2;
+	}
+	return angle;
+}
+
 // Calculates Inverse Kinematics joint angles
-function calculateIK( xCoord, yCoord, zCoord, leftHand ) {
+function calculateIK( xCoord, yCoord, zCoord, upHand ) {
 	var coxaJoint = scene.getObjectByName( 'coxaJoint' ),
 			femurJoint = scene.getObjectByName( 'femurJoint' ),
 			tibiaJoint = scene.getObjectByName( 'tibiaJoint' );
 	
-	var alpha, alpha1, alpha2, beta, beta1, theta, xzLength, xyLength,
-			xFemur, yFemur, xTibia, yTibia,
-				
-			// The difference between target XY-point and Coxa end
-			dx = xCoord,
-			dy = yCoord,
-			dist = Math.sqrt( dx*dx + dy*dy ),
+	var alpha, alpha1, alpha2, beta, theta, xCoxa, zCoxa, dx, dy, dz, distXZ, distXYZ,
 				
 			// XZ-angle
 			gamma = Math.atan2( zCoord, xCoord );
-		
+	
+	xCoxa = coxaLength * Math.cos( gamma );
+	zCoxa = coxaLength * Math.sin( gamma );
+	
+	dx = xCoord - xCoxa;
+	dy = yCoord - 45;
+  dz = zCoord - zCoxa;
+	
+	// Distances
+	distXZ = Math.sqrt( dx * dx + dz * dz );
+	distXYZ = Math.sqrt( dx * dx + dy * dy + dz * dz );
+	
 	// Clamp the distance, calculate angles if distance is below leg length
-	if ( dist < ( femurLength + tibiaLength ) ) {
-		xzLength = Math.sqrt( xCoord * xCoord + zCoord*zCoord);
-		xyLength = Math.sqrt( yCoord * yCoord + Math.pow( ( xzLength - coxaLength ), 2) );
-			
-		alpha1 = Math.atan2( yCoord, ( xzLength - coxaLength ) );
-		alpha2 = Math.acos( ( tibiaLength * tibiaLength - femurLength * femurLength - xyLength * xyLength) / ( -2 * femurLength * xyLength ) );
-		beta1 = Math.acos( ( xyLength * xyLength - tibiaLength * tibiaLength - femurLength * femurLength) / ( -2 * tibiaLength * femurLength ) );
+	if ( distXYZ < ( femurLength + tibiaLength ) ) {
+		alpha1 = Math.atan2( dy, distXZ );
+		alpha2 = Math.acos( ( tibiaLength * tibiaLength - femurLength * femurLength - distXYZ * distXYZ) / ( -2 * femurLength * distXYZ ) );
+		
+		beta = Math.acos( ( distXYZ * distXYZ - tibiaLength * tibiaLength - femurLength * femurLength) / ( -2 * tibiaLength * femurLength ) );
 		  
-		// Left hand orientation trigonometry
-		if ( leftHand ) {
+		// Up hand orientation trigonometry
+		if ( upHand ) {
 		  alpha = alpha1 + alpha2;
-				
-			xFemur = coxaLength + femurLength * Math.cos( alpha );
-		  yFemur = femurLength * Math.sin( alpha );
-				
-			beta = beta1 - Math.PI / 2 + alpha;
-			theta = Math.PI / 2 - beta + alpha;
-				
-			xTibia = xFemur + tibiaLength * Math.sin( beta );
-			yTibia = yFemur - tibiaLength * Math.cos( beta );
+			theta = beta - Math.PI;
 		}
-		// Right hand orientation trigonometry
+		// Down hand orientation trigonometry
 		else {
 		  alpha = alpha1 - alpha2;
-			
-		  xFemur = coxaLength + femurLength * Math.cos( alpha );
-		  yFemur = femurLength * Math.sin( alpha );
-			
-			beta = Math.PI / 2 - beta1 + alpha;
-			theta = Math.PI / 2 + beta - alpha;
-			
-      xTibia = xFemur - tibiaLength * Math.sin( beta );
-			yTibia = yFemur + tibiaLength * Math.cos( beta );
+			theta = Math.PI - beta;
 		}
 	}
 	// Else calculate angles for straight leg
 	else {
-		alpha = Math.atan2( dy, dx );
-	  beta = theta = alpha;
-			
-		xFemur = coxaLength + femurLength * Math.cos( alpha );
-		yFemur = femurLength * Math.sin( alpha );
-    xTibia = xFemur + tibiaLength * Math.cos( beta );
-	  yTibia = yFemur + tibiaLength * Math.sin( beta );
+	  alpha = Math.atan2( dy, distXZ );
+		beta = theta = 0;
 	}
-		
+	
+	// Check angle range max and min values (-90 to 90) degrees
+	gamma = isInRange( gamma );
+	alpha = isInRange( alpha );
+	theta = isInRange( theta );
+
+	// Add small offset angle correction for gamma (Coxa Y-axis rotation)
+	gamma = -( gamma + Math.PI / 85 );
+	
+	// Rotate servo motors
+	coxaJoint.rotation.set(0, gamma, 0);
+	femurJoint.rotation.set(0, 0, alpha);
+	tibiaJoint.rotation.set(0, 0, theta);
+	
 	// Create object for coordinates and angles and return it for rendering
 	var IK = {
-		'dist': dist.toFixed( 2 ),
-		'xFemur': xFemur.toFixed( 2 ),
-		'yFemur': yFemur.toFixed( 2 ),
-		'xTibia': xTibia.toFixed( 2 ),
-		'yTibia': yTibia.toFixed( 2 ),
-		'angleCoxa': gamma,
-		'angleFemur': alpha,
-	  'angleTibia': theta
+		'dist': distXYZ.toFixed( 2 ),
+		'angleCoxa': rad2deg(gamma).toFixed( 2 ),
+		'angleFemur': rad2deg(alpha).toFixed( 2 ),
+	  'angleTibia': rad2deg(theta).toFixed( 2 ),
+		'xCoxa': xCoxa,
+		'zCoxa': zCoxa
 	};
-	
-	coxaJoint.rotation.set(0, -gamma, 0);
-	femurJoint.rotation.set(0, 0, alpha);
-	tibiaJoint.rotation.set(0, 0, beta);
+
+  return IK;
 }
 
 // Render scene and animation
 function render() {
-	calculateIK( control.xCoord, control.yCoord, control.zCoord, control.leftHand );
+	var IK = calculateIK( control.xCoord, control.yCoord, control.zCoord, control.upHand );
 	
 	var coxaJoint = scene.getObjectByName( 'coxaJoint' ),
 			femurJoint = scene.getObjectByName( 'femurJoint' ),
@@ -310,8 +312,16 @@ function render() {
 			line = scene.getObjectByName( 'line' ),
 			pointSphere = scene.getObjectByName( 'pointSphere' );
 	
+	// Print angles to DOM
+	document.getElementById( 'distance' ).innerHTML = 'XYZ: ' + IK.dist + ' mm';
+	document.getElementById( 'coxa' ).innerHTML = 'Coxa: ' + IK.angleCoxa + ' degrees';
+	document.getElementById( 'femur' ).innerHTML = 'Femur: ' + IK.angleFemur + ' degrees';
+	document.getElementById( 'tibia' ).innerHTML = 'Tibia: ' + IK.angleTibia + ' degrees';
+	
 	// Update line between Coxa Joint origo and destination point
 	line.geometry.verticesNeedUpdate = true;
+	line.geometry.vertices[ 0 ].x = IK.xCoxa;
+	line.geometry.vertices[ 0 ].z = IK.zCoxa;
 	line.geometry.vertices[ 1 ].x = control.xCoord;
 	line.geometry.vertices[ 1 ].y = control.yCoord;
 	line.geometry.vertices[ 1 ].z = control.zCoord;
